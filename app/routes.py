@@ -7,7 +7,6 @@ from app.transcription import TranscriptionPipeline
 
 app = Flask(__name__)
 app_routes = Blueprint("app_routes", __name__)
-app.register_blueprint(app_routes)
 
 HOMEDIR = os.path.expanduser("~")
 APPDATA_PATH = f"{HOMEDIR}/llmll/dev_app_data"
@@ -22,3 +21,12 @@ async def transcribe():
     pipeline = TranscriptionPipeline(request, filesystem)
     response_data = await pipeline.run()
     return make_response(jsonify(response_data))
+
+
+@app_routes.route("/chat", methods=["POST"])
+async def chat():
+    print("Entering routes.chat...")
+    response_data = "hi"
+    return make_response(jsonify(response_data))
+    # response_data = await pipeline.run()
+    # return make_response(jsonify(response_data))
