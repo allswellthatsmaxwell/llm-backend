@@ -2,6 +2,8 @@ import os
 
 from flask import request, Blueprint, Flask, make_response, jsonify
 import requests
+import aiohttp
+import asyncio
 
 from app.filesystem import FileSystem
 from app.transcription import TranscriptionPipeline
@@ -27,9 +29,7 @@ async def transcribe():
 
 @app_routes.route("/chat", methods=["POST"])
 async def chat():
-    print("Entering routes.chat...")
     incoming_request_data = request.get_json()
-    print(f"INCOMING_REQUEST_DATA: {incoming_request_data}")
     openai_url = 'https://api.openai.com/v1/chat/completions'
 
     headers = {
@@ -37,13 +37,7 @@ async def chat():
         'Content-Type': 'application/json'
     }
 
-    response = requests.post(openai_url, headers=headers, json=incoming_request_data)
-    print(f"RESPONSE: {response}")
-    print(f"RESPONSE.TEXT: {response.text}")
-    print(f"RESPONSE.JSON(): {response.json()}")
-
-    return response.json(), response.status_code
-    # response_data = "hi"
-    # return make_response(jsonify(response_data))
-    # response_data = await pipeline.run()
-    # return make_response(jsonify(response_data))
+    async with aiohttp.ClientSession() as session:
+        async with session.post(openai_url, headers=headers, json=incoming_request_data) as response:
+            response_data = await response.json()
+            return response_data, response.status
