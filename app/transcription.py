@@ -9,6 +9,8 @@ from app.filesystem import FileSystem, delete_file
 
 app = Flask(__name__)
 
+EXT = "m4a"
+
 
 async def transcribe(file):
     with open(file, 'rb') as audio:
@@ -20,12 +22,15 @@ async def transcribe(file):
 class TranscriptionPipeline:
     def __init__(self, request, filesystem: FileSystem):
         user_id = request.args.get('userId', None)
-        dest_dir = os.path.join(filesystem.root, user_id, "recordings")
+        if user_id:
+            dest_dir = os.path.join(filesystem.root, user_id, "recordings")
+        else:
+            dest_dir = os.path.join(filesystem.root, "recordings")
         os.makedirs(dest_dir, exist_ok=True)
 
         self.audio_data = request.get_data()
-        self.destpath = f"{dest_dir}/rec1.wav"
-        self.trimmed_path = self.destpath.replace(".wav", "_trimmed.wav")
+        self.destpath = f"{dest_dir}/rec1.{EXT}"
+        self.trimmed_path = self.destpath.replace(f".{EXT}", f"_trimmed.{EXT}")
         app.logger.info(f"userId: {user_id}")
         app.logger.info("TranscriptionPipeline, len(audio_data):", len(self.audio_data))
 
@@ -44,8 +49,8 @@ class TranscriptionPipeline:
     async def run(self):
         try:
             self.write_audio_data()
-            has_audio = self.remove_silence()
-            transcript = self._get_transcript(has_audio)
+            has_audio = True # self.remove_silence()
+            transcript = await self._get_transcript(has_audio)
             response_data = {'transcription': transcript}
             return response_data
         except Exception as e:
