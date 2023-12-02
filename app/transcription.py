@@ -12,7 +12,7 @@ app = Flask(__name__)
 EXT = "m4a"
 
 
-async def transcribe(file):
+async def _transcribe(file):
     with open(file, 'rb') as audio:
         transcript = openai.Audio.transcribe("whisper-1", audio)
     print(json.dumps(transcript, indent=4))
@@ -60,7 +60,7 @@ class TranscriptionPipeline:
     async def _get_transcript(self, has_audio: bool):
         if has_audio:
             app.logger.info("Transcribing...")
-            transcript = await transcribe(self.destpath)
+            transcript = await _transcribe(self.destpath)
             app.logger.info("Done transcribing.")
             app.logger.info(transcript)
         else:
