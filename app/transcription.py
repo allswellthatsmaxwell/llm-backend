@@ -2,7 +2,9 @@ import os
 import json
 
 from flask import request, Blueprint, Flask, make_response, jsonify
-import openai
+from openai import OpenAI
+
+client = OpenAI()
 
 from app.audio_processing import remove_silence_and_save
 from app.filesystem import FileSystem, delete_file
@@ -12,11 +14,12 @@ app = Flask(__name__)
 EXT = "m4a"
 
 
-async def _transcribe(file):
-    with open(file, 'rb') as audio:
-        transcript = openai.Audio.transcribe("whisper-1", audio)
-    print(json.dumps(transcript, indent=4))
-    return transcript
+async def _transcribe(fpath) -> str:
+    print(f"_transcribe.fpath={fpath}")
+    with open(fpath, 'rb') as audio_file:
+        transcript = client.audio.transcriptions.create(model="whisper-1", file=audio_file)
+    # print(json.dumps(transcript, indent=4))
+    return transcript.text
 
 
 class TranscriptionPipeline:
@@ -49,8 +52,10 @@ class TranscriptionPipeline:
     async def run(self):
         try:
             self.write_audio_data()
+            print("Successfully wrote audio data.")
             has_audio = True # self.remove_silence()
             transcript = await self._get_transcript(has_audio)
+            print("Successfully got transcript.")
             response_data = {'transcription': transcript}
             return response_data
         except Exception as e:
