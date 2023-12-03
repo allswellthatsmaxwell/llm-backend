@@ -1,9 +1,9 @@
 import os
+import json
 
-from flask import request, Blueprint, Flask, make_response, jsonify
+from flask import request, Blueprint, Flask, make_response, jsonify, Response
 import requests
 import aiohttp
-import asyncio
 
 from app.filesystem import FileSystem
 from app.transcription import TranscriptionPipeline
@@ -41,3 +41,33 @@ async def chat():
         async with session.post(openai_url, headers=headers, json=incoming_request_data) as response:
             response_data = await response.json()
             return response_data, response.status
+
+
+@app_routes.route('/synthesize_speech', methods=['POST'])
+async def synthesize_speech():
+    print("Entering routes.synthesize_speech...")
+    data = request.json
+    input_text = data.get("text")
+    voice = data.get("voice", "onyx")
+
+    if not input_text:
+        print("No text provided")
+        return Response("No text provided", status=400)
+
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = json.dumps({
+        "model": "tts-1",
+        "input": input_text,
+        "voice": voice
+    })
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post("https://api.openai.com/v1/audio/speech", headers=headers, data=payload) as response:
+            if response.status != 200:
+                return Response(f"Error from OpenAI API: {await response.text()}", status=response.status)
+
+            return Response(await response.read(), mimetype='audio/mp3')
